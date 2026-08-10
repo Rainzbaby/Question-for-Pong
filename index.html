@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小邦邦</title>
+    <style>
+        body {
+            /* 移除原本將按鈕置中的 Flexbox 設定，讓畫面成為自由的海域 */
+            height: 100vh;
+            font-family: sans-serif;
+            margin: 0;
+            overflow: hidden;
+            background-color: #f4f4f9;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #333;
+            padding: 0 20px;
+            z-index: 10; 
+            /* 以下是修改的置中邏輯 */
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            margin: 0;
+            width: 100%;
+            pointer-events: none; /* 讓滑鼠穿透文字，防止標題本體阻擋按鈕的觸發 */
+        }
+
+        /* 兩個按鈕都必須設定為 absolute，才能在視窗中自由定位 */
+        button {
+            position: absolute;
+            padding: 12px 30px;
+            font-size: 18px;
+            cursor: pointer;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: background-color 0.2s;
+            z-index: 5;
+        }
+
+        #btn-yes {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        #btn-yes:hover {
+            background-color: #45a049;
+        }
+
+        #btn-no {
+            background-color: #f44336;
+            color: white;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+    <h1 id="question">To： 小邦邦</h1>
+
+    <button id="btn-yes" onclick="nextQuestion()">Yes</button>
+    <button id="btn-no">No</button>
+
+    <script>
+        const questionList = [
+            "你準備好嗎？",
+            "5月開始我已經Feel到你推開緊我。",
+            "你知吾知你既行為表現出避開同推開我？你係刻意？",
+            "其實個陣你係咪已經想吾繼續？",
+            "你係咪覺得我地見太多？",
+            "初初你覆得好快，之後你覆慢左，對比太大，有落差，好自然我會諗你係咪覺得無興趣咪想吾再搵或者想覆先覆。",
+            "你吾知你Hea答我，我Feel到？",
+            "你Hea答我係咪因為你吾想再繼續？",
+            "你有無聽過分享欲？如果你無野同我分享＝我地再無野講，你認吾認同？",
+            "我吾開心，你冷落我，呢個係你既處理方法？",
+            "我吾開心，你係咪覺得好煩，連咩原因都吾打算知？",
+            "你話你忙，你預早講，係尊重，吾講，係吾重視。",
+            "係咪只要吾開心就吾再繼續？",
+            "你係咪吾想再溝通？",
+            "你話你無講大話個陣，我第一個諗法係：",
+            "即係所有野都係我一相情願？即係你無任何責任？",
+            "你知吾知如果你吾想繼續，你可以直接同我講？",
+            "你知吾知你乜都吾講係一種冷漠？",
+            "你知吾知呢種冷漠好傷人？",  
+            "點解要一直冷落我到最後等我自己走，變成係我拋棄你？",
+            "明明係你先冷落我，係你先推開我，明明係你表現吾想繼續。",          
+            "如果你吾想繼續，咁你按No啦！"
+        ];
+
+        let currentQuestionIndex = 0;
+        
+        const questionText = document.getElementById('question');
+        const btnYes = document.getElementById('btn-yes');
+        const btnNo = document.getElementById('btn-no');
+
+        // 核心運算：為指定元素生成安全的隨機座標
+// 新的、具備碰撞檢測功能的隨機定位函數
+function randomizePosition(element) {
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+    const elWidth = element.offsetWidth;
+    const elHeight = element.offsetHeight;
+
+    // 1. 量度目標 (題目文字) 的確切邊界
+    const rectQ = questionText.getBoundingClientRect();
+    
+    // 設定一些緩衝區 (Padding)，讓按鈕不要貼得太近，看起來舒服點
+    const padding = 20; 
+
+    // 定義一個函數來檢查兩個矩形是否重疊
+    function isOverlapping(rectA, rectB) {
+        return !(rectA.right < rectB.left || 
+                 rectA.left > rectB.right || 
+                 rectA.bottom < rectB.top || 
+                 rectA.top > rectB.bottom);
+    }
+
+    let randomX, randomY, tempRectButton;
+    let attempts = 0; // 防止陷入死循環 (例如螢幕太小，沒地方放按鈕時)
+
+    // 2. 試算與 3. 檢查 (使用 do...while 迴圈直到找到空位)
+    do {
+        randomX = Math.floor(Math.random() * (windowWidth - elWidth));
+        randomY = Math.floor(Math.random() * (windowHeight - elHeight));
+
+        // 計算如果按鈕放在這組座標時的虛擬邊界
+        tempRectButton = {
+            left: randomX - padding,
+            top: randomY - padding,
+            right: randomX + elWidth + padding,
+            bottom: randomY + elHeight + padding
+        };
+
+        attempts++;
+        // 如果試了 100 次都找不到空位，就強行投放 (安全機制)
+        if (attempts > 100) break; 
+
+    } while (isOverlapping(tempRectButton, rectQ)); // 如果重疊，就重做
+
+    // 成功找到空位，套用座標
+    element.style.left = randomX + 'px';
+    element.style.top = randomY + 'px';
+}
+
+        // 初始化第一題，並立刻將兩個按鈕隨機投放
+        function init() {
+            questionText.innerText = questionList[currentQuestionIndex];
+            randomizePosition(btnYes);
+            randomizePosition(btnNo);
+        }
+
+        // 監聽「No」按鈕的逃跑事件
+        btnNo.addEventListener('mouseover', dodge);
+        btnNo.addEventListener('touchstart', dodge);
+
+        function dodge(e) {
+            e.preventDefault();
+            // 每次滑鼠靠近，重新計算 No 按鈕的隨機座標
+            randomizePosition(btnNo);
+        }
+
+        // 處理點擊「Yes」後的邏輯
+        function nextQuestion() {
+            currentQuestionIndex++;
+
+            if (currentQuestionIndex < questionList.length) {
+                questionText.innerText = questionList[currentQuestionIndex];
+                // 每次換題，兩個按鈕都要重新洗牌，轉移陣地
+                randomizePosition(btnYes);
+                randomizePosition(btnNo);
+            } else {
+                questionText.innerText = "如果你想繼續，按Yes!";
+                btnYes.classList.add('hidden');
+                btnNo.classList.add('hidden');
+            }
+        }
+
+        // 當畫面資源載入完成後執行初始化
+        window.onload = init;
+        
+        // 當使用者縮放視窗時，確保按鈕不會跑出畫面外
+        window.onresize = function() {
+            randomizePosition(btnYes);
+            randomizePosition(btnNo);
+        };
+    </script>
+
+</body>
+</html>
